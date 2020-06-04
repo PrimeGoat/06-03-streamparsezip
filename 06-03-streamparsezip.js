@@ -31,6 +31,7 @@ const zlib = require('zlib');
 let jsonMales = '{"Message":"Please try again in a moment."}';
 let jsonFemales = '{"Message":"Please try again in a moment."}';
 
+// Parse csv file
 const results = [];
 fs.createReadStream('data.csv')
 .pipe(csv())
@@ -38,6 +39,7 @@ fs.createReadStream('data.csv')
 .on('end', () => {
     let males = [];
     let females = [];
+    // Separate into male and female.  LGBTQ-incompatible
     for(entry of results) {
         if(entry.Gender == 'F')         females.push(entry);
         else if(entry.Gender == 'M')    males.push(entry);
@@ -45,9 +47,11 @@ fs.createReadStream('data.csv')
     jsonMales = JSON.stringify(males);
     jsonFemales = JSON.stringify(females);
     
+    // Create buffers for file processing
     let maleBuf = Buffer.from(jsonMales, 'utf8');
     let femaleBuf = Buffer.from(jsonFemales, 'utf8');
 
+    // write output files
     fs.writeFileSync("females.json", femaleBuf);
     fs.writeFileSync("males.json", maleBuf);
     fs.writeFileSync("malezipfile.json.gz", zlib.gzipSync(maleBuf));
@@ -58,47 +62,45 @@ fs.createReadStream('data.csv')
 const server = http.createServer((req, res) => {
     console.log("Incoming request: " + req.url);
     let readStream;
+
+    // determine request route
     switch(req.url) {
         case "/index.html":
         case "/index":
         case "/":
+            // main site
             res.writeHead(200, { 'Content-Type': 'text/html' });
             readStream = fs.createReadStream('./index.html', 'utf8');
             readStream.pipe(res);
             break;
         case "/females":
         case "/females.json":
+            // females json
             res.writeHead(200, { 'Content-Type': 'application/json' });
             readStream = fs.createReadStream('./females.json');
             readStream.pipe(res);
             break;
         case "/males":
         case "/males.json":
+            // males json
             res.writeHead(200, { 'Content-Type': 'application/json' });
             readStream = fs.createReadStream('./males.json');
             readStream.pipe(res);
             break;
         case "/malezipfile.json.gz":
+            // male gzip
             res.writeHead(200, { 'Content-Type': 'application/gzip' });
             readStream = fs.createReadStream('./malezipfile.json.gz');
             readStream.pipe(res);
             break;
         case "/femalezipfile.json.gz":
+            // fenale gzip
             res.writeHead(200, { 'Content-Type': 'application/gzip' });
             readStream = fs.createReadStream('./femalezipfile.json.gz');
             readStream.pipe(res);
             break;
-        case "/malezipfile.json.zip":
-            res.writeHead(200, { 'Content-Type': 'application/gzip' });
-            readStream = fs.createReadStream('./malezipfile.json.zip');
-            readStream.pipe(res);
-            break;
-        case "/femalezipfile.json.zip":
-            res.writeHead(200, { 'Content-Type': 'application/gzip' });
-            readStream = fs.createReadStream('./femalezipfile.json.zip');
-            readStream.pipe(res);
-            break;
         default:
+            // not found
             res.writeHead(404, { 'Content-Type': 'text/html' });
             readStream = fs.createReadStream('./404.html', 'utf8');
             readStream.pipe(res);
@@ -106,6 +108,7 @@ const server = http.createServer((req, res) => {
     }
 });
 
+// start listening
 server.listen(3000, (msg) => {
     console.log("Listening to port 3000");
 });
